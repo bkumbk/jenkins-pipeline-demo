@@ -1,0 +1,29 @@
+---
+plugin: community.vmware.vmware_vm_inventory
+
+# vCenter connection
+hostname: "{{ lookup('env', 'VCENTER_HOST') }}"
+username: "{{ lookup('env', 'VCENTER_USER') }}"
+password: "{{ lookup('env', 'VCENTER_PASS') }}"
+validate_certs: false
+
+# What to fetch from vCenter
+with_tags: true
+with_path: true
+
+# Filter — only powered on VMs
+properties:
+  - name
+  - config.guestId
+  - config.hardware.numCPU
+  - config.hardware.memoryMB
+  - runtime.powerState
+  - guest.ipAddress
+  - guest.hostName
+
+# Group VMs automatically by:
+keyed_groups:
+  - key: config.guestId
+    prefix: "os"              # groups like os_windows, os_rhel
+  - key: runtime.powerState
+    prefix: "power"           # groups like power_poweredOn
