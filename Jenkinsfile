@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'VCENTER_HOST', defaultValue: '', description: 'vCenter IP or hostname')
-        string(name: 'DATACENTER_NAME', defaultValue: '', description: 'vCenter Datacenter name')
+        string(name: 'DATACENTER_NAME', defaultValue: '', description: 'Datacenter name')
         string(name: 'VM_NAME', defaultValue: '', description: 'Name of the VM')
         string(name: 'SNAPSHOT_NAME', defaultValue: '', description: 'Snapshot name to delete')
     }
@@ -56,6 +56,7 @@ pipeline {
                 }
             }
         }
+
     }
 
     post {
