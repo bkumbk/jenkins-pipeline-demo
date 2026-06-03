@@ -21,7 +21,8 @@ pipeline {
         stage('Validate Inputs') {
             steps {
                 script {
-                    if (!params.VM_NAME || !params.SNAPSHOT_NAME || !params.VCENTER_HOST || !params.DATACENTER_NAME) {
+                    if (!params.VM_NAME || !params.SNAPSHOT_NAME ||
+                        !params.VCENTER_HOST || !params.DATACENTER_NAME) {
                         error 'All parameters are required!'
                     }
                 }
@@ -29,6 +30,25 @@ pipeline {
                 echo "Snapshot     : ${params.SNAPSHOT_NAME}"
                 echo "vCenter Host : ${params.VCENTER_HOST}"
                 echo "Datacenter   : ${params.DATACENTER_NAME}"
+            }
+        }
+
+        stage('Fetch VMs from vCenter') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'vcenter-credentials',
+                    usernameVariable: 'VCENTER_USER',
+                    passwordVariable: 'VCENTER_PASS'
+                )]) {
+                    // Test dynamic inventory — list all VMs from vCenter
+                    sh """
+                        VCENTER_HOST=${params.VCENTER_HOST} \
+                        VCENTER_USER=\$VCENTER_USER \
+                        VCENTER_PASS=\$VCENTER_PASS \
+                        /usr/local/bin/ansible-inventory \
+                        -i inventory/vmware.yml --list
+                    """
+                }
             }
         }
 
@@ -56,7 +76,6 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
@@ -64,7 +83,7 @@ pipeline {
             echo "✅ Snapshot '${params.SNAPSHOT_NAME}' deleted from '${params.VM_NAME}' successfully!"
         }
         failure {
-            echo "❌ Failed to delete snapshot. Check console output for details."
+            echo "❌ Failed. Check console output for details."
         }
     }
 }
