@@ -4,6 +4,29 @@
   gather_facts: false
 
   tasks:
+    - name: Get VM info by name
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: false
+        vm_name: "{{ vm_name }}"
+      delegate_to: localhost
+      register: vm_info
+
+    - name: Fail if VM not found
+      fail:
+        msg: "VM '{{ vm_name }}' not found in vCenter!"
+      when: vm_info.virtual_machines | length == 0
+
+    - name: Set VM MOID
+      set_fact:
+        vm_moid: "{{ vm_info.virtual_machines[0].moid }}"
+
+    - name: Show VM MOID
+      debug:
+        msg: "Found VM '{{ vm_name }}' with MOID: {{ vm_moid }}"
+
     - name: Delete snapshot
       community.vmware.vmware_guest_snapshot:
         hostname: "{{ vcenter_hostname }}"
@@ -11,7 +34,7 @@
         password: "{{ vcenter_password }}"
         validate_certs: false
         datacenter: "{{ datacenter_name }}"
-        name: "{{ vm_name }}"
+        moid: "{{ vm_moid }}"
         state: absent
         snapshot_name: "{{ snapshot_name }}"
       delegate_to: localhost
