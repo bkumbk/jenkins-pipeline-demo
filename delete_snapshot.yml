@@ -4,28 +4,36 @@
   gather_facts: false
 
   tasks:
-    - name: Get VM info by name
+    - name: Fetch all VMs from vCenter using dynamic inventory
       community.vmware.vmware_vm_info:
         hostname: "{{ vcenter_hostname }}"
         username: "{{ vcenter_username }}"
         password: "{{ vcenter_password }}"
         validate_certs: false
-        vm_name: "{{ vm_name }}"
       delegate_to: localhost
-      register: vm_info
+      register: all_vms
+
+    - name: Show all VMs fetched from vCenter
+      debug:
+        msg: "Found VM: {{ item.guest_name }}"
+      loop: "{{ all_vms.virtual_machines }}"
+
+    - name: Find target VM
+      set_fact:
+        target_vm: "{{ all_vms.virtual_machines | selectattr('guest_name', 'equalto', vm_name) | list | first }}"
 
     - name: Fail if VM not found
       fail:
         msg: "VM '{{ vm_name }}' not found in vCenter!"
-      when: vm_info.virtual_machines | length == 0
+      when: target_vm is not defined
 
-    - name: Set VM MOID
-      set_fact:
-        vm_moid: "{{ vm_info.virtual_machines[0].moid }}"
-
-    - name: Show VM MOID
+    - name: Show target VM details
       debug:
-        msg: "Found VM '{{ vm_name }}' with MOID: {{ vm_moid }}"
+        msg: |
+          VM Name  : {{ target_vm.guest_name }}
+          MOID     : {{ target_vm.moid }}
+          Power    : {{ target_vm.power_state }}
+          IP       : {{ target_vm.ip_address }}
 
     - name: Delete snapshot
       community.vmware.vmware_guest_snapshot:
@@ -34,11 +42,11 @@
         password: "{{ vcenter_password }}"
         validate_certs: false
         datacenter: "{{ datacenter_name }}"
-        moid: "{{ vm_moid }}"
+        moid: "{{ target_vm.moid }}"
         state: absent
         snapshot_name: "{{ snapshot_name }}"
       delegate_to: localhost
 
     - name: Print result
       debug:
-        msg: "Snapshot '{{ snapshot_name }}' deleted from VM '{{ vm_name }}' successfully!"
+        msg: "Snapshot '{{ snapshot_name }}' deleted from '{{ vm_name }}' successfully!"
