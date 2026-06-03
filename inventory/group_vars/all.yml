@@ -1,1 +1,6 @@
-
+---
+# Common variables for all hosts
+ansible_user: administrator
+ansible_connection: winrm          # for Windows VMs
+ansible_winrm_transport: ntlm
+ansible_winrm_server_cert_validation: ignore
